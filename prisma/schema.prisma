@@ -1,0 +1,74 @@
+// Prisma schema for the Dance Fit with Emily booking system.
+// Prisma 7: connection URL lives in prisma.config.ts; runtime uses a driver adapter.
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// A dance class people can join. One class has one public join link and many bookings.
+model Class {
+  id            String    @id @default(cuid())
+  token         String    @unique // unguessable; used in the public /class/{token} join link
+  danceType     String // class name / dance type
+  classDateTime DateTime
+  location      String? // optional venue note
+  spotifyUrl    String? // optional public Spotify playlist/album link, previewed on the join page
+  themed        Boolean  @default(false) // a special / themed class, shown separately from regular ones
+  amount        Int // price per person, minor units (e.g. pence)
+  currency      String    @default("gbp") // lowercase ISO 4217
+  capacity      Int? // max spots; null = unlimited
+  closed        Boolean   @default(false) // admin can stop new joins
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  bookings      Booking[]
+
+  @@index([classDateTime])
+}
+
+/// One person's place on a class. One booking == one Stripe PaymentIntent
+/// (manual cash bookings have no PaymentIntent).
+model Booking {
+  id              String        @id @default(cuid())
+  classId         String
+  class           Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  customerName    String
+  customerEmail   String
+  customerPhone   String?
+  status          BookingStatus @default(PENDING)
+  manual          Boolean       @default(false) // added by the admin (e.g. paid in cash)
+  paymentIntentId String?       @unique
+  clientSecret    String? // cached; reconciled against Stripe on each read
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([classId])
+  @@index([status])
+}
+
+enum BookingStatus {
+  PENDING // booking created, PaymentIntent created, not yet paid
+  PROCESSING // async payment method in flight
+  PAID
+  FAILED
+  CANCELED
+}
+
+/// A customer review / case study, shown on the public site. Managed by the admin.
+model Review {
+  id        String   @id @default(cuid())
+  name      String // who left it
+  title     String? // optional headline, e.g. for a case study
+  quote     String // the review text (can be long for a case study)
+  rating    Int? // optional 1–5 stars
+  featured  Boolean  @default(false) // highlight as a case study
+  createdAt DateTime @default(now())
+
+  @@index([featured])
+}

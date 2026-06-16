@@ -1,26 +1,97 @@
 @import "tailwindcss";
 
+/* ---- Brand theme: "Dance Fit with Emily" logo palette — blue → pink ---- */
+@theme {
+  --color-brand-50: #fdf2f8;
+  --color-brand-100: #fce7f3;
+  --color-brand-200: #fbcfe8;
+  --color-brand-300: #f9a8d4;
+  --color-brand-400: #f472b6;
+  --color-brand-500: #ec4899;
+  --color-brand-600: #db2777;
+  --color-brand-700: #be185d;
+  --color-accent: #5666e6; /* logo blue, pairs with pink for the brand gradient */
+  --color-ink: #1f1430;
+  --color-muted: #6b6577;
+
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(180deg, #fdf2f8 0%, #ffffff 38%);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* Respect iOS safe areas (notch / home indicator) for the phone-first admin */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@layer components {
+  /* Brand gradient (logo: blue → pink) for heroes and logo marks. */
+  .brand-grad {
+    background-image: linear-gradient(120deg, #5666e6 0%, #ec4d9a 100%);
+  }
+
+  /* Page container — phone-first, comfortably centered on larger screens */
+  .container-app {
+    @apply mx-auto w-full max-w-md px-4 sm:max-w-lg;
+  }
+
+  /* Card */
+  .card {
+    @apply rounded-2xl border border-brand-100 bg-white/90 p-5 shadow-sm backdrop-blur;
+  }
+
+  /* Buttons — large tap targets for mobile. Each variant is self-contained. */
+  .btn-primary {
+    @apply inline-flex w-full select-none items-center justify-center gap-2 rounded-xl
+           bg-brand-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition
+           hover:bg-brand-700 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply inline-flex w-full select-none items-center justify-center gap-2 rounded-xl
+           border border-brand-200 bg-white px-5 py-3.5 text-base font-semibold text-brand-700
+           shadow-sm transition hover:bg-brand-50 active:scale-[0.99]
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-danger {
+    @apply inline-flex w-full select-none items-center justify-center gap-2 rounded-xl
+           border border-rose-200 bg-white px-5 py-3.5 text-base font-semibold text-rose-700
+           transition hover:bg-rose-50 active:scale-[0.99]
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  /* Form fields */
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink;
+  }
+  .input {
+    @apply w-full rounded-xl border border-brand-200 bg-white px-4 py-3 text-base text-ink
+           shadow-sm outline-none transition focus:border-brand-500 focus:ring-2
+           focus:ring-brand-200;
+  }
+  .hint {
+    @apply mt-1 text-xs text-muted;
+  }
+
+  /* Status badges — self-contained */
+  .badge-paid {
+    @apply inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700;
+  }
+  .badge-pending {
+    @apply inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700;
+  }
+  .badge-processing {
+    @apply inline-flex items-center gap-1 rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-700;
+  }
+  .badge-failed {
+    @apply inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700;
+  }
+  .badge-canceled {
+    @apply inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700;
+  }
 }
