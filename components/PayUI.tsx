@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { Brand } from "@/components/Brand";
 import { formatMoney } from "@/lib/money";
 import { formatDateTime } from "@/lib/datetime";
 import { mapsDirectionsUrl } from "@/lib/maps";
+import { CONTACT } from "@/lib/config";
 
 export function PayShell({
   children,
@@ -14,10 +16,37 @@ export function PayShell({
     <main className="flex min-h-dvh flex-col items-center py-8">
       <div className="container-app">
         <Brand subtitle={subtitle} />
+        {/* Let cold visitors from a shared link explore before paying. */}
+        <nav className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs font-medium text-muted">
+          <Link href="/" className="hover:text-brand-700">Home</Link>
+          <Link href="/classes" className="hover:text-brand-700">Classes</Link>
+          <Link href="/reviews" className="hover:text-brand-700">Reviews</Link>
+          <Link href="/faq" className="hover:text-brand-700">FAQ</Link>
+        </nav>
         <div className="mt-6">{children}</div>
         <p className="mt-6 text-center text-xs text-muted">Powered by Stripe</p>
       </div>
     </main>
+  );
+}
+
+/** Reassurance shown beneath the booking form: refund, security and contact. */
+export function PayReassurance() {
+  return (
+    <div className="mt-4 rounded-xl border border-brand-100 bg-white/70 p-4 text-sm text-muted">
+      <ul className="space-y-1.5">
+        <li>✓ Your spot is confirmed the moment payment succeeds.</li>
+        <li>✓ Card details are handled securely by Stripe — they never touch this site.</li>
+        <li>✓ Full refund up to 48 hours before the class.</li>
+        <li>
+          Questions?{" "}
+          <a href={`mailto:${CONTACT.email}`} className="font-medium text-brand-700 hover:underline">
+            Message Emily
+          </a>
+          .
+        </li>
+      </ul>
+    </div>
   );
 }
 

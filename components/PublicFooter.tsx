@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SITE_NAME } from "@/lib/config";
+import { SITE_NAME, CONTACT, SERVICE_AREA } from "@/lib/config";
 
 export function PublicFooter() {
   return (
@@ -14,26 +14,22 @@ export function PublicFooter() {
           <Link href="/gallery" className="hover:text-brand-700">Gallery</Link>
         </nav>
         <div className="flex gap-5 text-sm text-muted">
-          <a
-            href="https://www.instagram.com/_dancefitwithemily"
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-brand-700"
-          >
+          <a href={CONTACT.instagram} target="_blank" rel="noreferrer" className="hover:text-brand-700">
             Instagram
           </a>
-          <a
-            href="https://www.tiktok.com/@_dancefitwithemily"
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-brand-700"
-          >
+          <a href={CONTACT.tiktok} target="_blank" rel="noreferrer" className="hover:text-brand-700">
             TikTok
           </a>
-          <a href="mailto:dancefitwithemily@outlook.com" className="hover:text-brand-700">
+          <a href={`mailto:${CONTACT.email}`} className="hover:text-brand-700">
             Email
           </a>
         </div>
+
+        {/* Legal links (Privacy/Terms) are added back when those pages are committed. */}
+        <p className="mt-2 text-xs text-muted/70">
+          {SITE_NAME} · dance fitness classes in {SERVICE_AREA}.
+        </p>
+
         <Link href="/admin" className="mt-2 text-xs text-muted/70 hover:text-brand-700">
           Studio admin
         </Link>

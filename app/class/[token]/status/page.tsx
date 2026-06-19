@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { stripe, stripeConfigured } from "@/lib/stripe";
 import { syncBookingWithStripe, upsertBookingFromIntent } from "@/lib/bookings";
 import { PayShell, SummaryCard } from "@/components/PayUI";
+import { ClassGrid } from "@/components/ClassGrid";
+import { ShareLink } from "@/components/ShareLink";
+import { getUpcomingClasses } from "@/lib/classes";
+import { classUrl, SITE_NAME, CONTACT } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +65,8 @@ export default async function ClassStatusPage({
     const isPaid = booking.status === "PAID" || paymentStatus === "succeeded";
 
     if (isPaid) {
+      const others = (await getUpcomingClasses(4)).filter((c) => c.token !== token).slice(0, 2);
+
       return (
         <PayShell subtitle="Booking confirmed">
           <div className="card border-emerald-200 bg-emerald-50/70 text-center">
@@ -72,9 +78,44 @@ export default async function ClassStatusPage({
               A receipt has been emailed to {found.customerEmail}.
             </p>
           </div>
+
           <div className="mt-4">
             <SummaryCard details={details} customerName={found.customerName} />
           </div>
+
+          <a href={`/api/class/${token}/ics`} className="btn-secondary mt-3">
+            Add to calendar
+          </a>
+
+          <div className="card mt-4">
+            <p className="font-semibold text-ink">What happens next</p>
+            <ul className="mt-2 space-y-1.5 text-sm text-muted">
+              <li>• Pop the date in your calendar (button above).</li>
+              <li>• Arrive 5 minutes early in comfy clothes you can move in.</li>
+              <li>• Bring water — you’ll need it!</li>
+            </ul>
+          </div>
+
+          <div className="card mt-4 text-center">
+            <p className="font-semibold text-ink">Bring a friend 💃</p>
+            <p className="mb-3 mt-1 text-sm text-muted">
+              Dancing’s better together — share this class.
+            </p>
+            <ShareLink
+              url={classUrl(token)}
+              shareTitle={`${cls.danceType} · ${SITE_NAME}`}
+              shareText={`Come to ${cls.danceType} with me!`}
+            />
+          </div>
+
+          {others.length > 0 ? (
+            <div className="mt-8">
+              <h2 className="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-muted">
+                More classes you might like
+              </h2>
+              <ClassGrid classes={others} />
+            </div>
+          ) : null}
         </PayShell>
       );
     }
@@ -108,6 +149,13 @@ export default async function ClassStatusPage({
         <Link href={`/class/${token}`} className="btn-primary mt-4">
           Try again
         </Link>
+        <p className="mt-3 text-sm text-muted">
+          Trouble paying?{" "}
+          <a href={`mailto:${CONTACT.email}`} className="font-medium text-brand-700 hover:underline">
+            Email Emily
+          </a>
+          .
+        </p>
       </div>
     </PayShell>
   );

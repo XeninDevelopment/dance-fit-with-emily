@@ -46,6 +46,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   if (!cls) {
     return NextResponse.json({ error: "Class not found." }, { status: 404 });
   }
+  // Never start a payment for a class that has already taken place. The join page also
+  // hides the form, but that's render-time only — a stale tab or a direct POST must not
+  // be able to pay for a finished class.
+  if (cls.classDateTime.getTime() < Date.now()) {
+    return NextResponse.json(
+      { error: "This class has already taken place." },
+      { status: 409 },
+    );
+  }
   if (cls.closed) {
     return NextResponse.json(
       { error: "This class is no longer accepting bookings." },

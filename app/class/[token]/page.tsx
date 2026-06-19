@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { PayShell, SummaryCard } from "@/components/PayUI";
+import { PayShell, SummaryCard, PayReassurance } from "@/components/PayUI";
 import { JoinAndPay } from "./JoinAndPay";
 import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { formatMoney } from "@/lib/money";
 import { formatDateTime } from "@/lib/datetime";
 import { stripeConfigured } from "@/lib/stripe";
-import { SITE_NAME } from "@/lib/config";
+import { SITE_NAME, CONTACT } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,27 @@ export async function generateMetadata({
   };
 }
 
+function ContactLine() {
+  return (
+    <p className="mt-3 text-sm text-muted">
+      Need a hand?{" "}
+      <a href={`mailto:${CONTACT.email}`} className="font-medium text-brand-700 hover:underline">
+        Email Emily
+      </a>{" "}
+      or message{" "}
+      <a
+        href={CONTACT.instagram}
+        target="_blank"
+        rel="noreferrer"
+        className="font-medium text-brand-700 hover:underline"
+      >
+        {CONTACT.instagramHandle}
+      </a>
+      .
+    </p>
+  );
+}
+
 export default async function ClassJoinPage({
   params,
 }: {
@@ -43,8 +65,12 @@ export default async function ClassJoinPage({
         <div className="card text-center">
           <p className="text-lg font-bold text-ink">Class not found</p>
           <p className="mt-2 text-sm text-muted">
-            This link isn’t valid. Please double-check it or contact the studio.
+            This link isn’t valid — please double-check it.
           </p>
+          <Link href="/classes" className="btn-primary mt-4">
+            See upcoming classes
+          </Link>
+          <ContactLine />
         </div>
       </PayShell>
     );
@@ -66,19 +92,34 @@ export default async function ClassJoinPage({
     spotsLeft = Math.max(0, cls.capacity - taken);
   }
 
-  const blocked = cls.closed
-    ? { title: "Bookings closed", body: "This class is no longer accepting new bookings." }
-    : spotsLeft === 0
-      ? { title: "Class full", body: "Sorry, all spots for this class have been taken." }
-      : null;
+  const isPast = cls.classDateTime.getTime() < Date.now();
+
+  const blocked = isPast
+    ? {
+        title: "This class has already taken place",
+        body: "This class is in the past — but there are more coming up.",
+      }
+    : cls.closed
+      ? { title: "Bookings closed", body: "This class is no longer accepting new bookings." }
+      : spotsLeft === 0
+        ? { title: "Class full", body: "Sorry, all spots for this class have been taken." }
+        : null;
+
+  const lowSpots = spotsLeft != null && spotsLeft > 0 && spotsLeft <= 3;
 
   return (
     <PayShell subtitle="Join this class">
       <SummaryCard details={details} />
       {!blocked && spotsLeft != null ? (
-        <p className="mt-2 text-center text-xs text-muted">
-          {spotsLeft} {spotsLeft === 1 ? "spot" : "spots"} left
-        </p>
+        lowSpots ? (
+          <p className="mt-2 text-center">
+            <span className="badge-pending">
+              Only {spotsLeft} {spotsLeft === 1 ? "spot" : "spots"} left!
+            </span>
+          </p>
+        ) : (
+          <p className="mt-2 text-center text-xs text-muted">{spotsLeft} spots left</p>
+        )
       ) : null}
 
       <div className="card mt-4">
@@ -86,15 +127,22 @@ export default async function ClassJoinPage({
           <div className="text-center">
             <p className="text-base font-semibold text-ink">{blocked.title}</p>
             <p className="mt-1 text-sm text-muted">{blocked.body}</p>
+            <Link href="/classes" className="btn-primary mt-4">
+              See upcoming classes
+            </Link>
+            <ContactLine />
           </div>
         ) : stripeConfigured ? (
           <JoinAndPay token={cls.token} amountLabel={formatMoney(cls.amount, cls.currency)} />
         ) : (
-          <p className="text-center text-sm text-muted">
-            Online booking isn’t available yet. Please contact the studio.
-          </p>
+          <div className="text-center">
+            <p className="text-sm text-muted">Online booking isn’t available right now.</p>
+            <ContactLine />
+          </div>
         )}
       </div>
+
+      {!blocked && stripeConfigured ? <PayReassurance /> : null}
 
       <SpotifyEmbed url={cls.spotifyUrl} title="What we’ll dance to" />
     </PayShell>

@@ -99,7 +99,8 @@ function CheckoutForm({
         {loading ? "Processing…" : `Pay ${amountLabel}`}
       </button>
       <p className="text-center text-xs text-muted">
-        Payments are secured by Stripe. A receipt is emailed to {details.email}.
+        Secured by Stripe — your card details never touch this site. A receipt is emailed to{" "}
+        {details.email}. Full refund up to 48h before the class.
       </p>
     </form>
   );
@@ -225,6 +226,9 @@ export function JoinAndPay({ token, amountLabel }: { token: string; amountLabel:
       <button type="submit" disabled={loading} className="btn-primary">
         {loading ? "Loading…" : "Continue to payment"}
       </button>
+      <p className="text-center text-xs text-muted">
+        We use your details to manage your booking and send your receipt.
+      </p>
     </form>
   );
 }

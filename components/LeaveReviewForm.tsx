@@ -177,7 +177,9 @@ export function LeaveReviewForm() {
         <button type="submit" className="btn-primary !w-auto px-6" disabled={loading}>
           {loading ? "Submitting…" : "Submit review"}
         </button>
-        <p className="text-xs text-muted">Reviews are checked before they appear on the site.</p>
+        <p className="text-xs text-muted">
+          Your name and review are shown publicly once Emily approves them.
+        </p>
       </div>
     </form>
   );
