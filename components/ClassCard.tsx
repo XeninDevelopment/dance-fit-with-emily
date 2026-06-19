@@ -40,7 +40,7 @@ function PinIcon() {
 
 export function ClassCard({ cls }: { cls: PublicClass }) {
   return (
-    <div className="flex flex-col rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
+    <div className="flex flex-col rounded-2xl border border-brand-100 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md">
       {cls.themed ? (
         <span className="mb-2 inline-flex w-fit items-center rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
           Themed

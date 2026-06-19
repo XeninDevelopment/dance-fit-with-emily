@@ -11,6 +11,7 @@ import { EditClassForm } from "./EditClassForm";
 import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { formatMoney } from "@/lib/money";
 import { formatDateTime } from "@/lib/datetime";
+import { mapsDirectionsUrl } from "@/lib/maps";
 import { classUrl, SITE_NAME } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -61,7 +62,19 @@ export default async function ClassDetailPage({
           ) : null}
         </div>
         <p className="text-sm text-muted">{formatDateTime(cls.classDateTime)}</p>
-        {cls.location ? <p className="text-sm text-muted">{cls.location}</p> : null}
+        {cls.location ? (
+          <p className="text-sm text-muted">
+            {cls.location}{" "}
+            <a
+              href={mapsDirectionsUrl(cls.location)}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-brand-700 hover:underline"
+            >
+              · Directions
+            </a>
+          </p>
+        ) : null}
         <dl className="mt-3 divide-y divide-brand-100">
           <Row label="Price" value={formatMoney(cls.amount, cls.currency)} />
           <Row

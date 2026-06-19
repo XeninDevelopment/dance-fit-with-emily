@@ -1,11 +1,33 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { PayShell, SummaryCard } from "@/components/PayUI";
 import { JoinAndPay } from "./JoinAndPay";
 import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { formatMoney } from "@/lib/money";
+import { formatDateTime } from "@/lib/datetime";
 import { stripeConfigured } from "@/lib/stripe";
+import { SITE_NAME } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  const cls = await prisma.class.findUnique({ where: { token } });
+  if (!cls) return { title: "Class not found" };
+  const desc = `Book ${cls.danceType} on ${formatDateTime(cls.classDateTime)}${
+    cls.location ? ` at ${cls.location}` : ""
+  } — ${formatMoney(cls.amount, cls.currency)} per person.`;
+  return {
+    title: cls.danceType,
+    description: desc,
+    openGraph: { title: `${cls.danceType} · ${SITE_NAME}`, description: desc },
+    twitter: { card: "summary_large_image", title: `${cls.danceType} · ${SITE_NAME}`, description: desc },
+  };
+}
 
 export default async function ClassJoinPage({
   params,

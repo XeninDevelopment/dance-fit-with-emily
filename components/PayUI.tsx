@@ -1,6 +1,7 @@
 import { Brand } from "@/components/Brand";
 import { formatMoney } from "@/lib/money";
 import { formatDateTime } from "@/lib/datetime";
+import { mapsDirectionsUrl } from "@/lib/maps";
 
 export function PayShell({
   children,
@@ -52,7 +53,22 @@ export function SummaryCard({
       </p>
       <dl className="mt-4 space-y-1.5 text-sm">
         <Row label="Class" value={formatDateTime(details.classDateTime)} />
-        {details.location ? <Row label="Location" value={details.location} /> : null}
+        {details.location ? (
+          <div className="flex items-start justify-between gap-4">
+            <dt className="text-muted">Location</dt>
+            <dd className="text-right">
+              <span className="font-medium text-ink">{details.location}</span>
+              <a
+                href={mapsDirectionsUrl(details.location)}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-0.5 block text-sm font-medium text-brand-700 hover:underline"
+              >
+                Get directions →
+              </a>
+            </dd>
+          </div>
+        ) : null}
         {customerName ? <Row label="Name" value={customerName} /> : null}
       </dl>
     </div>

@@ -1,9 +1,18 @@
+import type { Metadata } from "next";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { ClassGrid } from "@/components/ClassGrid";
 import { getUpcomingClasses } from "@/lib/classes";
+import { SITE_NAME } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
+
+const DESC = "Browse and book Emily's upcoming dance fitness classes — pay online, your spot confirmed instantly.";
+export const metadata: Metadata = {
+  title: "Classes",
+  description: DESC,
+  openGraph: { title: `Classes · ${SITE_NAME}`, description: DESC },
+};
 
 export default async function ClassesPage() {
   const classes = await getUpcomingClasses();

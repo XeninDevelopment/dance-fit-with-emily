@@ -68,7 +68,9 @@ model Review {
   quote     String // the review text (can be long for a case study)
   rating    Int? // optional 1–5 stars
   featured  Boolean  @default(false) // highlight as a case study
+  pending   Boolean  @default(false) // public submissions await admin approval; hidden from the site until approved
   createdAt DateTime @default(now())
 
   @@index([featured])
+  @@index([pending])
 }

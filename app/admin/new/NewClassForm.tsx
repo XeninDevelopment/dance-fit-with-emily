@@ -96,8 +96,9 @@ export function NewClassForm({ defaultCurrency = "gbp" }: { defaultCurrency?: st
           id="location"
           name="location"
           className="input"
-          placeholder="e.g. Studio 2, Town Hall"
+          placeholder="e.g. Town Hall, Main St, Manchester M1 1AB"
         />
+        <p className="hint">Include the postcode so the customer’s “Get directions” link is accurate.</p>
       </div>
 
       <div>

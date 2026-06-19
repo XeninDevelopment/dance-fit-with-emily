@@ -95,3 +95,36 @@ body {
     @apply inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700;
   }
 }
+
+/* ---- Motion / flair (disabled when the user prefers reduced motion) ---- */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes disco-rotate {
+    from { transform: translateX(0); }
+    to { transform: translateX(-7px); }
+  }
+  @keyframes disco-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  @keyframes disco-twinkle {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+  @keyframes reveal-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .disco-bob { animation: disco-bob 3.6s ease-in-out infinite; }
+  .disco-rotate { animation: disco-rotate 5s linear infinite; }
+  .disco-twinkle {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: disco-twinkle 2.6s ease-in-out infinite;
+  }
+
+  .reveal-up { opacity: 0; animation: reveal-up 0.6s ease-out forwards; }
+  .reveal-up.d1 { animation-delay: 0.08s; }
+  .reveal-up.d2 { animation-delay: 0.18s; }
+  .reveal-up.d3 { animation-delay: 0.28s; }
+}

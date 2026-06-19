@@ -2,12 +2,13 @@ import { AdminShell } from "@/components/AdminShell";
 import { Stars } from "@/components/Stars";
 import { AddReviewForm } from "./AddReviewForm";
 import { DeleteReviewButton } from "./DeleteReviewButton";
-import { getReviews } from "@/lib/reviews";
+import { ApproveReviewButton } from "./ApproveReviewButton";
+import { getReviews, getPendingReviews } from "@/lib/reviews";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminReviewsPage() {
-  const reviews = await getReviews();
+  const [reviews, pending] = await Promise.all([getReviews(), getPendingReviews()]);
 
   return (
     <AdminShell>
@@ -15,6 +16,34 @@ export default async function AdminReviewsPage() {
       <p className="text-sm text-muted">
         These appear on your public reviews page. Tick “case study” to feature a longer story.
       </p>
+
+      {pending.length > 0 ? (
+        <div className="mt-4">
+          <h3 className="flex items-center gap-2 font-semibold text-ink">
+            Awaiting approval <span className="badge-pending">{pending.length}</span>
+          </h3>
+          <p className="text-sm text-muted">
+            Submitted by visitors. Approve to publish, or delete to discard.
+          </p>
+          <div className="mt-3 space-y-3">
+            {pending.map((r) => (
+              <div key={r.id} className="card border-amber-200 bg-amber-50/40">
+                {r.rating ? (
+                  <div>
+                    <Stars rating={r.rating} />
+                  </div>
+                ) : null}
+                <p className="mt-1 text-sm text-ink">“{r.quote}”</p>
+                <p className="mt-1 text-xs text-muted">— {r.name}</p>
+                <div className="mt-3 flex items-center gap-2">
+                  <ApproveReviewButton id={r.id} />
+                  <DeleteReviewButton id={r.id} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="card mt-4">
         <h3 className="font-semibold text-ink">Add a review</h3>
