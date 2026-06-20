@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
+import { GalleryGrid } from "@/components/GalleryGrid";
 import { GALLERY } from "@/lib/gallery";
 import { SITE_NAME } from "@/lib/config";
 
@@ -26,21 +26,8 @@ export default function GalleryPage() {
             <p className="mt-1 text-sm text-muted">Check back shortly for snaps from class.</p>
           </div>
         ) : (
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {GALLERY.map((photo) => (
-              <div
-                key={photo.src}
-                className="relative aspect-square overflow-hidden rounded-xl border border-brand-100"
-              >
-                <Image
-                  src={photo.src}
-                  alt={photo.alt}
-                  fill
-                  sizes="(min-width: 640px) 33vw, 50vw"
-                  className="object-cover"
-                />
-              </div>
-            ))}
+          <div className="mt-8">
+            <GalleryGrid photos={GALLERY} />
           </div>
         )}
       </main>

@@ -28,18 +28,18 @@ function SparkleDot({ className = "h-5 w-5" }: { className?: string }) {
 // (roughly 32%–68% wide) so the headline stays clean. Class strings are written
 // in full so Tailwind's scanner picks them up.
 const HERO_SPARKLES = [
-  { pos: "left-[7%] top-[20%]", size: "h-4 w-4", tone: "text-white/60", delay: "0s" },
-  { pos: "left-[15%] top-[58%]", size: "h-3 w-3", tone: "text-white/40", delay: "0.5s" },
-  { pos: "left-[11%] bottom-[16%]", size: "h-5 w-5", tone: "text-white/55", delay: "1.6s" },
-  { pos: "left-[24%] top-[32%]", size: "h-3 w-3", tone: "text-white/35", delay: "2.4s" },
-  { pos: "left-[27%] bottom-[30%]", size: "h-4 w-4", tone: "text-white/45", delay: "1.1s" },
-  { pos: "left-[44%] top-[9%]", size: "h-3 w-3", tone: "text-white/40", delay: "2.0s" },
-  { pos: "right-[9%] top-[26%]", size: "h-5 w-5", tone: "text-white/55", delay: "0.9s" },
-  { pos: "right-[17%] top-[62%]", size: "h-3 w-3", tone: "text-white/40", delay: "1.9s" },
-  { pos: "right-[11%] bottom-[20%]", size: "h-4 w-4", tone: "text-white/50", delay: "2.2s" },
-  { pos: "right-[25%] top-[42%]", size: "h-3 w-3", tone: "text-white/30", delay: "0.3s" },
-  { pos: "right-[27%] bottom-[32%]", size: "h-5 w-5", tone: "text-white/45", delay: "1.4s" },
-  { pos: "right-[42%] bottom-[11%]", size: "h-3 w-3", tone: "text-white/35", delay: "0.7s" },
+  { pos: "left-[7%] top-[20%]", size: "h-6 w-6", tone: "text-white/60", delay: "0s" },
+  { pos: "left-[15%] top-[58%]", size: "h-5 w-5", tone: "text-white/40", delay: "0.5s" },
+  { pos: "left-[11%] bottom-[16%]", size: "h-8 w-8", tone: "text-white/55", delay: "1.6s" },
+  { pos: "left-[24%] top-[32%]", size: "h-5 w-5", tone: "text-white/35", delay: "2.4s" },
+  { pos: "left-[27%] bottom-[30%]", size: "h-6 w-6", tone: "text-white/45", delay: "1.1s" },
+  { pos: "left-[44%] top-[9%]", size: "h-5 w-5", tone: "text-white/40", delay: "2.0s" },
+  { pos: "right-[9%] top-[26%]", size: "h-8 w-8", tone: "text-white/55", delay: "0.9s" },
+  { pos: "right-[17%] top-[62%]", size: "h-5 w-5", tone: "text-white/40", delay: "1.9s" },
+  { pos: "right-[11%] bottom-[20%]", size: "h-6 w-6", tone: "text-white/50", delay: "2.2s" },
+  { pos: "right-[25%] top-[42%]", size: "h-5 w-5", tone: "text-white/30", delay: "0.3s" },
+  { pos: "right-[27%] bottom-[32%]", size: "h-8 w-8", tone: "text-white/45", delay: "1.4s" },
+  { pos: "right-[42%] bottom-[11%]", size: "h-5 w-5", tone: "text-white/35", delay: "0.7s" },
 ];
 
 export default async function Home() {
@@ -69,7 +69,7 @@ export default async function Home() {
           <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 py-12 text-center sm:py-16">
             <DiscoBall size={80} id="db-hero" animated />
             <h1 className="reveal-up d1 text-4xl font-bold tracking-tight sm:text-5xl">
-              Come dance with us
+              Come and dance with us!
             </h1>
             <p className="reveal-up d2 max-w-xl text-base text-white/90 sm:text-lg">
               Feel-good dance fitness classes with Emily — find, enhance and empower your love

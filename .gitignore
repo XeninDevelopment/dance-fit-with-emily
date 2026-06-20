@@ -42,3 +42,7 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# Gallery: keep full-size originals out of git (kept locally); commit only the optimised web copies
+/public/gallery/*
+!/public/gallery/web/
