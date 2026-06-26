@@ -2,13 +2,15 @@ export type LocalBusiness = {
   name: string;
   location: string;
   category: string;
-  emoji: string;
+  emoji: string; // shown when no `image` is set
   blurb: string; // Emily's own words
   instagram: string; // handle without the @
+  image?: string; // optional logo/profile pic in /public/local/ (e.g. "/local/thecakery.jpg")
 };
 
 // Local businesses Emily personally uses and recommends. Blurbs are Emily's own words.
-// To add one: copy an entry, fill it in, and (optionally) a matching emoji.
+// To add a photo: drop a square image in /public/local/ and set `image` on that business;
+// otherwise the emoji tile is shown.
 export const LOCAL_BUSINESSES: LocalBusiness[] = [
   {
     name: "Beauty by Elle",

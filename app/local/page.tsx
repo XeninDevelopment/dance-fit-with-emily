@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { LOCAL_BUSINESSES } from "@/lib/localBusinesses";
@@ -29,8 +30,11 @@ export default function LocalBusinessesPage() {
 
       <main className="mx-auto max-w-5xl px-4 py-12">
         <h1 className="text-3xl font-bold tracking-tight text-ink">Local businesses we love</h1>
-        <p className="mt-1 text-muted">
-          A few wonderful local businesses Emily uses and trusts. Go and show them some love 💖
+        <p className="mt-3 max-w-2xl leading-relaxed text-muted">
+          Dance isn’t the only thing Emily’s passionate about — she’s lucky to be surrounded by
+          brilliant local people, and she loves to send that support right back. These are the
+          businesses she genuinely uses and trusts, from her nails to her piano lessons to the cake on
+          her birthday. If you’re looking for someone wonderful nearby, start here.
         </p>
 
         <div className="mt-8 grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
@@ -43,8 +47,12 @@ export default function LocalBusinessesPage() {
               className="group flex flex-col rounded-2xl border border-brand-100 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-md"
             >
               <div className="flex items-center gap-3">
-                <span className="brand-grad flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl">
-                  <span aria-hidden="true">{b.emoji}</span>
+                <span className="brand-grad relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl text-2xl">
+                  {b.image ? (
+                    <Image src={b.image} alt={b.name} fill sizes="48px" className="object-cover" />
+                  ) : (
+                    <span aria-hidden="true">{b.emoji}</span>
+                  )}
                 </span>
                 <div className="min-w-0">
                   <p className="truncate font-bold text-ink">{b.name}</p>
