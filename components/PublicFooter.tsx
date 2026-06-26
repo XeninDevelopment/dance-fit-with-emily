@@ -12,6 +12,7 @@ export function PublicFooter() {
           <Link href="/reviews" className="hover:text-brand-700">Reviews</Link>
           <Link href="/faq" className="hover:text-brand-700">FAQ</Link>
           <Link href="/gallery" className="hover:text-brand-700">Gallery</Link>
+          <Link href="/local" className="hover:text-brand-700">Local loves</Link>
         </nav>
         <div className="flex gap-5 text-sm text-muted">
           <a href={CONTACT.instagram} target="_blank" rel="noreferrer" className="hover:text-brand-700">

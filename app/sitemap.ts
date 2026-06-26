@@ -11,6 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/reviews`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${base}/faq`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${base}/gallery`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${base}/local`, changeFrequency: "monthly", priority: 0.5 },
     // NOTE: /privacy and /terms are intentionally omitted until the legal pages are committed.
   ];
 
