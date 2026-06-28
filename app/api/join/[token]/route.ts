@@ -5,6 +5,7 @@ import { stripe, stripeConfigured } from "@/lib/stripe";
 import { rateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/ip";
 import { SITE_NAME } from "@/lib/config";
+import { formatDateTime } from "@/lib/datetime";
 
 export const runtime = "nodejs";
 
@@ -80,7 +81,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       amount: cls.amount,
       currency: cls.currency,
       automatic_payment_methods: { enabled: true },
-      description: `${cls.danceType} — ${SITE_NAME}`,
+      // Shows on the customer's Stripe email receipt — include when & where, not just the name.
+      description: `${cls.danceType} · ${formatDateTime(cls.classDateTime)}${
+        cls.location ? ` · ${cls.location}` : ""
+      } — ${SITE_NAME}`,
       receipt_email: data.customerEmail,
       metadata: {
         classId: cls.id,
