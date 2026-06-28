@@ -19,6 +19,14 @@ export const STATUS_RANK: Record<BookingStatus, number> = {
   PAID: 3,
 };
 
+/** A Stripe "charge already refunded" error — the payment is already fully refunded. */
+function isAlreadyRefunded(e: unknown): boolean {
+  const code =
+    (e as { code?: string } | null)?.code ??
+    (e as { raw?: { code?: string } } | null)?.raw?.code;
+  return code === "charge_already_refunded";
+}
+
 /**
  * Safety net for a captured payment we can't honour (class deleted mid-checkout, or
  * a PI with no class). Never keep money with no record: refund a succeeded charge and
@@ -33,7 +41,7 @@ async function refundOrphanedPayment(
   console.error(`[orphan-payment] ${status} PaymentIntent ${pi.id}: ${reason}.`);
   if (status === "PAID" && stripeConfigured) {
     await stripe.refunds
-      .create({ payment_intent: pi.id })
+      .create({ payment_intent: pi.id }, { idempotencyKey: `orphan_refund_${pi.id}` })
       .catch((e) => console.error(`[orphan-payment] auto-refund failed for ${pi.id}:`, e));
   }
 }
@@ -53,6 +61,8 @@ export async function upsertBookingFromIntent(
 
   const existing = await prisma.booking.findUnique({ where: { paymentIntentId: pi.id } });
   if (existing) {
+    // CANCELED is terminal (admin refund / canceled PI) — never let a later signal resurrect it.
+    if (existing.status === "CANCELED") return existing;
     if (STATUS_RANK[status] > STATUS_RANK[existing.status]) {
       return prisma.booking.update({
         where: { id: existing.id },
@@ -137,9 +147,9 @@ export async function syncBookingWithStripe(booking: Booking): Promise<SyncResul
     return { booking, clientSecret: booking.clientSecret, paymentStatus: null };
   }
 
-  // PAID is terminal — never downgrade a webhook-confirmed payment (matches the
-  // webhook handler's guard). Still surface the live PI status for display.
-  if (booking.status === "PAID") {
+  // PAID and CANCELED are terminal — never auto-change them on read. A refunded/cancelled
+  // booking must not resurrect to PAID just because the PaymentIntent still reads "succeeded".
+  if (booking.status === "PAID" || booking.status === "CANCELED") {
     return {
       booking,
       clientSecret: pi.client_secret ?? booking.clientSecret,
@@ -168,4 +178,60 @@ export async function syncBookingWithStripe(booking: Booking): Promise<SyncResul
     clientSecret: pi.client_secret ?? booking.clientSecret,
     paymentStatus: pi.status,
   };
+}
+
+/**
+ * Admin action: refund a paid booking via Stripe and mark it CANCELED, freeing the spot
+ * (CANCELED bookings don't count toward capacity). The row is kept for audit; the refund
+ * itself is recorded against the PaymentIntent in Stripe. CANCELED is terminal (see the
+ * guards above), so the booking won't resurrect to PAID on a later read.
+ */
+export async function cancelAndRefundBooking(
+  bookingId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+  if (!booking) return { ok: false, error: "Booking not found." };
+  if (booking.status === "CANCELED") return { ok: true }; // already cancelled / refunded
+
+  if (!booking.paymentIntentId) {
+    return { ok: false, error: "This was a cash booking — remove them and refund in person." };
+  }
+  if (booking.status === "PROCESSING") {
+    return { ok: false, error: "Payment is still processing — try again once it’s confirmed." };
+  }
+  if (booking.status !== "PAID") {
+    return { ok: false, error: "Nothing to refund — remove this attendee instead." };
+  }
+  if (!stripeConfigured) {
+    return { ok: false, error: "Payments aren’t configured." };
+  }
+
+  // Atomically claim the cancellation: only one caller flips PAID -> CANCELED and goes on to
+  // refund, so concurrent clicks / two tabs can't both issue a refund.
+  const claim = await prisma.booking.updateMany({
+    where: { id: bookingId, status: "PAID" },
+    data: { status: "CANCELED" },
+  });
+  if (claim.count === 0) return { ok: true }; // someone else already cancelled/refunded it
+
+  try {
+    // Idempotency key (per booking) collapses a retry — or a racing class-delete refund of
+    // the same booking — into ONE refund instead of paying out twice.
+    await stripe.refunds.create(
+      { payment_intent: booking.paymentIntentId },
+      { idempotencyKey: `refund_${bookingId}` },
+    );
+    return { ok: true };
+  } catch (e) {
+    // Already refunded out-of-band (e.g. from the Stripe dashboard): the customer IS refunded,
+    // so keep it CANCELED (spot freed) and report success rather than bricking the booking.
+    if (isAlreadyRefunded(e)) return { ok: true };
+    // Genuine failure: roll the status back so the spot isn't freed without a refund.
+    console.error(`[refund] failed for booking ${bookingId} / PI ${booking.paymentIntentId}:`, e);
+    await prisma.booking.update({ where: { id: bookingId }, data: { status: "PAID" } });
+    return {
+      ok: false,
+      error: "Refund failed at Stripe — please try again, or refund from the Stripe dashboard.",
+    };
+  }
 }

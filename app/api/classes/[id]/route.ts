@@ -92,9 +92,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Class not found" }, { status: 404 });
   }
 
+  // Cancelling a class refunds everyone who paid online, and cancels any unpaid PIs, so no
+  // one is left charged for a class that won't happen. (Cash bookings have no PI to refund.)
   if (stripeConfigured) {
     for (const b of cls.bookings) {
-      if (b.paymentIntentId && b.status !== "PAID") {
+      if (!b.paymentIntentId) continue;
+      if (b.status === "PAID") {
+        await stripe.refunds
+          .create({ payment_intent: b.paymentIntentId }, { idempotencyKey: `refund_${b.id}` })
+          .catch((e) => console.error(`[class-delete] refund failed for ${b.paymentIntentId}:`, e));
+      } else {
         await stripe.paymentIntents.cancel(b.paymentIntentId).catch(() => {});
       }
     }

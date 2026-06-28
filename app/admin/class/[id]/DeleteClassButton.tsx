@@ -9,7 +9,7 @@ export function DeleteClassButton({ id, hasPaid }: { id: string; hasPaid: boolea
 
   async function onDelete() {
     const message = hasPaid
-      ? "This class has PAID attendees. Deleting removes the class and everyone on it — no refunds are issued. Delete anyway?"
+      ? "This class has PAID attendees. Deleting cancels the class and AUTOMATICALLY REFUNDS everyone who paid online. Delete and refund all?"
       : "Delete this class and its join link?";
     if (!window.confirm(message)) return;
 

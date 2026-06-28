@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { ShareLink } from "@/components/ShareLink";
 import { AddAttendeeForm } from "./AddAttendeeForm";
 import { DeleteAttendeeButton } from "./DeleteAttendeeButton";
+import { RefundAttendeeButton } from "./RefundAttendeeButton";
 import { DeleteClassButton } from "./DeleteClassButton";
 import { EditClassForm } from "./EditClassForm";
 import { SpotifyEmbed } from "@/components/SpotifyEmbed";
@@ -38,6 +39,11 @@ export default async function ClassDetailPage({
   if (!cls) notFound();
 
   const paid = cls.bookings.filter((b) => b.status === "PAID").length;
+  // Capacity is occupied by PAID *and* in-flight PROCESSING bookings (matches the public
+  // spots-left/full logic); revenue is only what's actually captured (PAID).
+  const occupied = cls.bookings.filter(
+    (b) => b.status === "PAID" || b.status === "PROCESSING",
+  ).length;
   const collected = paid * cls.amount;
   const link = classUrl(cls.token);
 
@@ -81,8 +87,8 @@ export default async function ClassDetailPage({
             label="Joined"
             value={
               cls.capacity != null
-                ? `${paid} / ${cls.capacity}${paid > cls.capacity ? " (over capacity)" : ""}`
-                : `${paid}`
+                ? `${occupied} / ${cls.capacity}${occupied > cls.capacity ? " (over capacity)" : ""}`
+                : `${occupied}`
             }
           />
           <Row label="Collected" value={formatMoney(collected, cls.currency)} />
@@ -140,7 +146,14 @@ export default async function ClassDetailPage({
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <StatusBadge status={b.status} />
-                  <DeleteAttendeeButton id={b.id} />
+                  {(b.status === "PAID" || b.status === "PROCESSING") && b.paymentIntentId ? (
+                    <RefundAttendeeButton
+                      id={b.id}
+                      amountLabel={formatMoney(cls.amount, cls.currency)}
+                    />
+                  ) : (
+                    <DeleteAttendeeButton id={b.id} />
+                  )}
                 </div>
               </li>
             ))}

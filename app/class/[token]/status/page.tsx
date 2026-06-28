@@ -62,6 +62,30 @@ export default async function ClassStatusPage({
       currency: cls.currency,
     };
     const { booking, paymentStatus } = await syncBookingWithStripe(found);
+
+    if (booking.status === "CANCELED") {
+      return (
+        <PayShell subtitle="Booking cancelled">
+          <div className="card text-center">
+            <p className="text-lg font-bold text-ink">This booking was cancelled</p>
+            <p className="mt-2 text-sm text-muted">
+              If you were charged, a refund has been issued to your original payment method.
+            </p>
+            <Link href="/classes" className="btn-primary mt-4">
+              See other classes
+            </Link>
+            <p className="mt-3 text-sm text-muted">
+              Questions?{" "}
+              <a href={`mailto:${CONTACT.email}`} className="font-medium text-brand-700 hover:underline">
+                Email Emily
+              </a>
+              .
+            </p>
+          </div>
+        </PayShell>
+      );
+    }
+
     const isPaid = booking.status === "PAID" || paymentStatus === "succeeded";
 
     if (isPaid) {
