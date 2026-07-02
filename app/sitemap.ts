@@ -12,7 +12,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/faq`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${base}/gallery`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${base}/local`, changeFrequency: "monthly", priority: 0.5 },
-    // NOTE: /privacy and /terms are intentionally omitted until the legal pages are committed.
+    { url: `${base}/privacy`, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${base}/terms`, changeFrequency: "yearly", priority: 0.2 },
   ];
 
   // Enumerate upcoming class pages. Wrapped so a DB hiccup (e.g. at build time) still

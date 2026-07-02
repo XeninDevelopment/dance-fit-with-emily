@@ -37,7 +37,13 @@ export function PayReassurance() {
       <ul className="space-y-1.5">
         <li>✓ Your spot is confirmed the moment payment succeeds.</li>
         <li>✓ Card details are handled securely by Stripe — they never touch this site.</li>
-        <li>✓ Full refund up to 48 hours before the class.</li>
+        <li>
+          ✓ Full refund up to 48 hours before the class —{" "}
+          <Link href="/terms#refunds" className="font-medium text-brand-700 hover:underline">
+            refund policy
+          </Link>
+          .
+        </li>
         <li>
           Questions?{" "}
           <a href={`mailto:${CONTACT.email}`} className="font-medium text-brand-700 hover:underline">

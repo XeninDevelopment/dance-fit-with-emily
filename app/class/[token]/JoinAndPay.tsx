@@ -100,13 +100,30 @@ function CheckoutForm({
       </button>
       <p className="text-center text-xs text-muted">
         Secured by Stripe — your card details never touch this site. A receipt is emailed to{" "}
-        {details.email}. Full refund up to 48h before the class.
+        {details.email}. Full refund up to 48h before the class (
+        <a
+          href="/terms#refunds"
+          target="_blank"
+          rel="noreferrer"
+          className="font-medium text-brand-700 hover:underline"
+        >
+          refund policy
+        </a>
+        ).
       </p>
     </form>
   );
 }
 
-export function JoinAndPay({ token, amountLabel }: { token: string; amountLabel: string }) {
+export function JoinAndPay({
+  token,
+  amountLabel,
+  claimToken,
+}: {
+  token: string;
+  amountLabel: string;
+  claimToken?: string;
+}) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [details, setDetails] = useState<Details | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -135,6 +152,7 @@ export function JoinAndPay({ token, amountLabel }: { token: string; amountLabel:
           customerName: next.name,
           customerEmail: next.email,
           customerPhone: next.phone,
+          ...(claimToken ? { claimToken } : {}),
         }),
       });
       const data = (await res.json().catch(() => null)) as
@@ -227,7 +245,16 @@ export function JoinAndPay({ token, amountLabel }: { token: string; amountLabel:
         {loading ? "Loading…" : "Continue to payment"}
       </button>
       <p className="text-center text-xs text-muted">
-        We use your details to manage your booking and send your receipt.
+        We use your details to manage your booking and send your receipt. See our{" "}
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noreferrer"
+          className="font-medium text-brand-700 hover:underline"
+        >
+          Privacy Policy
+        </a>
+        .
       </p>
     </form>
   );

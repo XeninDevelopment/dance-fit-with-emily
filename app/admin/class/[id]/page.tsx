@@ -39,11 +39,22 @@ export default async function ClassDetailPage({
   if (!cls) notFound();
 
   const paid = cls.bookings.filter((b) => b.status === "PAID").length;
-  // Capacity is occupied by PAID *and* in-flight PROCESSING bookings (matches the public
-  // spots-left/full logic); revenue is only what's actually captured (PAID).
-  const occupied = cls.bookings.filter(
+  // Capacity is occupied by PAID + in-flight PROCESSING bookings + live checkout holds
+  // (matches the public spots-left/full logic); revenue is only what's captured (PAID).
+  const bookedSeats = cls.bookings.filter(
     (b) => b.status === "PAID" || b.status === "PROCESSING",
   ).length;
+  const holding = await prisma.spotHold.count({
+    where: { classId: cls.id, expiresAt: { gt: new Date() } },
+  });
+  const offered = await prisma.spotOffer.count({
+    where: { classId: cls.id, status: "HELD", tier2ExpiresAt: { gt: new Date() } },
+  });
+  const waitlist = await prisma.waitlistEntry.findMany({
+    where: { classId: cls.id, converted: false },
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+  });
+  const occupied = bookedSeats + holding + offered;
   const collected = paid * cls.amount;
   const link = classUrl(cls.token);
 
@@ -85,11 +96,11 @@ export default async function ClassDetailPage({
           <Row label="Price" value={formatMoney(cls.amount, cls.currency)} />
           <Row
             label="Joined"
-            value={
+            value={`${
               cls.capacity != null
                 ? `${occupied} / ${cls.capacity}${occupied > cls.capacity ? " (over capacity)" : ""}`
                 : `${occupied}`
-            }
+            }${holding > 0 ? ` (${holding} in checkout)` : ""}${offered > 0 ? ` (${offered} offered to waitlist)` : ""}`}
           />
           <Row label="Collected" value={formatMoney(collected, cls.currency)} />
         </dl>
@@ -160,6 +171,29 @@ export default async function ClassDetailPage({
           </ul>
         )}
       </div>
+
+      {waitlist.length > 0 ? (
+        <div className="card mt-4">
+          <h3 className="font-semibold text-ink">Waitlist ({waitlist.length})</h3>
+          <p className="mb-2 mt-0.5 text-sm text-muted">
+            First in line gets first access when a spot frees up (e.g. after a refund).
+          </p>
+          <ul className="divide-y divide-brand-100">
+            {waitlist.map((w, i) => (
+              <li key={w.id} className="flex items-center gap-3 py-2.5">
+                <span className="w-6 shrink-0 text-sm font-semibold text-muted">{i + 1}.</span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-ink">{w.name}</p>
+                  <p className="truncate text-xs text-muted">{w.email}</p>
+                </div>
+                {w.offeredAt ? (
+                  <span className="badge-pending ml-auto shrink-0">offered</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="card mt-4">
         <h3 className="font-semibold text-ink">Add attendee</h3>

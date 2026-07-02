@@ -27,8 +27,67 @@ model Class {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   bookings      Booking[]
+  spotHolds     SpotHold[]
+  waitlist      WaitlistEntry[]
+  spotOffers    SpotOffer[]
 
   @@index([classDateTime])
+}
+
+/// Someone waiting for a spot in a full class. FIFO by position; email lowercased at insert.
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  position  Int // FIFO order (gaps are fine; order by position, createdAt)
+  offeredAt DateTime? // set when this entry gets a tier-1 exclusive offer (missed window = lost priority)
+  converted Boolean  @default(false) // booked a spot via an offer
+  createdAt DateTime @default(now())
+
+  @@unique([classId, email])
+  @@index([classId, position])
+}
+
+/// A freed spot reserved for the waitlist. Tier 1: exclusive to the first in line (30 min);
+/// tier 2: first-come for the whole waitlist (30 min more); then EXPIRED = open to the public.
+/// A HELD offer counts toward capacity so the public can't take the reserved seat.
+model SpotOffer {
+  id             String      @id @default(cuid())
+  classId        String
+  class          Class       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  claimToken     String      @unique // unguessable; possession of the emailed link = authorisation
+  status         OfferStatus @default(HELD)
+  tier           Int         @default(1)
+  holderEntryId  String? // the tier-1 exclusive holder (null once created straight at tier 2)
+  tier1ExpiresAt DateTime
+  tier2ExpiresAt DateTime
+  createdAt      DateTime    @default(now())
+
+  @@index([classId, status])
+  @@index([status, tier1ExpiresAt])
+  @@index([status, tier2ExpiresAt])
+}
+
+enum OfferStatus {
+  HELD // reserved, claimable via the emailed link
+  CLAIMED // a booking consumed this offer's seat
+  EXPIRED // both windows passed — the seat is public again
+}
+
+/// A short-lived seat reservation. Created during checkout so two concurrent buyers can't
+/// oversell a class; counts toward capacity until it expires or the payment succeeds (then
+/// it's cleared). Reused later to hold a freed spot for a waitlist offer.
+model SpotHold {
+  id              String   @id @default(cuid())
+  classId         String
+  class           Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  paymentIntentId String?  @unique // set once the PaymentIntent exists
+  expiresAt       DateTime // the hold stops counting once this passes
+  createdAt       DateTime @default(now())
+
+  @@index([classId, expiresAt])
 }
 
 /// One person's place on a class. One booking == one Stripe PaymentIntent
@@ -45,6 +104,7 @@ model Booking {
   paymentIntentId String?       @unique
   clientSecret    String? // cached; reconciled against Stripe on each read
   paidAt          DateTime?
+  confirmationEmailSentAt DateTime? // set once the branded confirmation email is sent (exactly-once claim)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

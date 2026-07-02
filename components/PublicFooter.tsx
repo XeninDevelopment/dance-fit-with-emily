@@ -26,8 +26,12 @@ export function PublicFooter() {
           </a>
         </div>
 
-        {/* Legal links (Privacy/Terms) are added back when those pages are committed. */}
-        <p className="mt-2 text-xs text-muted/70">
+        <nav className="mt-2 flex flex-wrap justify-center gap-4 text-xs text-muted">
+          <Link href="/privacy" className="hover:text-brand-700">Privacy</Link>
+          <Link href="/terms" className="hover:text-brand-700">Terms</Link>
+          <a href={`mailto:${CONTACT.email}`} className="hover:text-brand-700">Contact</a>
+        </nav>
+        <p className="text-xs text-muted/70">
           {SITE_NAME} · dance fitness classes in {SERVICE_AREA}.
         </p>
 

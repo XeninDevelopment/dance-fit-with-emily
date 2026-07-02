@@ -3,6 +3,8 @@ import type Stripe from "stripe";
 import type { Booking, BookingStatus } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { stripe, stripeConfigured } from "@/lib/stripe";
+import { sendConfirmationOnce } from "@/lib/email";
+import { maybeOfferFreedSpot } from "@/lib/waitlist";
 
 type SyncResult = {
   booking: Booking;
@@ -56,6 +58,17 @@ export async function upsertBookingFromIntent(
   pi: Stripe.PaymentIntent,
   status: BookingStatus,
 ): Promise<Booking | null> {
+  const booking = await upsertBookingFromIntentInner(pi, status);
+  // Every PAID observation (webhook, redelivery, return-page reconcile) attempts the branded
+  // confirmation email; the claim inside makes it exactly-once and lets a failed send retry.
+  if (booking?.status === "PAID") await sendConfirmationOnce(booking);
+  return booking;
+}
+
+async function upsertBookingFromIntentInner(
+  pi: Stripe.PaymentIntent,
+  status: BookingStatus,
+): Promise<Booking | null> {
   const md = pi.metadata || {};
   const classId = typeof md.classId === "string" ? md.classId : null;
 
@@ -91,19 +104,67 @@ export async function upsertBookingFromIntent(
   }
 
   try {
-    return await prisma.booking.create({
-      data: {
-        classId: cls.id,
-        customerName: typeof md.customerName === "string" ? md.customerName : "Guest",
-        customerEmail:
-          typeof md.customerEmail === "string" ? md.customerEmail : (pi.receipt_email ?? ""),
-        customerPhone: typeof md.customerPhone === "string" ? md.customerPhone : null,
-        status,
-        paymentIntentId: pi.id,
-        clientSecret: pi.client_secret,
-        paidAt: status === "PAID" ? new Date() : null,
-      },
-    });
+    // Create the booking with the capacity check IN THE SAME locked statement (same per-class
+    // advisory lock as reserveSpot, so join-time reservation and late-payment materialisation
+    // serialise on one key). This is the last line against oversell: if the class is already
+    // full with real bookings — e.g. this payment's seat hold expired and someone else took the
+    // freed spot — no row is inserted and we refund rather than overbook a physical room.
+    // `taken` counts only real bookings (not holds): this customer's own hold may still be live,
+    // and a captured payment outranks other people's tentative checkouts.
+    const customerName = typeof md.customerName === "string" ? md.customerName : "Guest";
+    const customerEmail =
+      typeof md.customerEmail === "string" ? md.customerEmail : (pi.receipt_email ?? "");
+    const customerPhone = typeof md.customerPhone === "string" ? md.customerPhone : null;
+    const paidAt = status === "PAID" ? new Date() : null;
+    const rows = await prisma.$queryRaw<{ id: string }[]>`
+      WITH lock AS (
+        SELECT pg_advisory_xact_lock(hashtext(${cls.id})::bigint) AS locked
+      ),
+      cap AS (
+        SELECT capacity FROM "Class" WHERE id = ${cls.id}
+      ),
+      taken AS (
+        SELECT (SELECT count(*) FROM "Booking" b
+                  WHERE b."classId" = ${cls.id} AND b.status IN ('PAID', 'PROCESSING')) AS n
+        FROM lock
+      )
+      INSERT INTO "Booking"
+        ("id", "classId", "customerName", "customerEmail", "customerPhone", "status",
+         "manual", "paymentIntentId", "clientSecret", "paidAt", "createdAt", "updatedAt")
+      SELECT gen_random_uuid()::text, ${cls.id}, ${customerName}, ${customerEmail},
+             ${customerPhone}, ${status}::"BookingStatus", false, ${pi.id},
+             ${pi.client_secret}, ${paidAt}, now(), now()
+      FROM cap, taken
+      WHERE cap.capacity IS NULL OR taken.n < cap.capacity
+      RETURNING "id";
+    `;
+
+    if (!rows[0]) {
+      // Class full (or deleted this instant) — the seat is gone, so return the money.
+      await refundOrphanedPayment(pi, status, `class ${cls.id} is full or gone (no seat to honour)`);
+      return null;
+    }
+
+    // Reservation fulfilled — release the seat hold so it isn't double-counted with the booking.
+    await prisma.spotHold
+      .deleteMany({ where: { paymentIntentId: pi.id } })
+      .catch((e) => console.error(`[spot-hold] release failed for PI ${pi.id}:`, e));
+
+    // Waitlist claim: consume the offer (its reserved seat is now this booking) and mark the
+    // payer's waitlist entry converted. Conditional update — a raced/expired offer is a no-op.
+    const offerId = typeof md.offerId === "string" ? md.offerId : null;
+    if (offerId) {
+      await prisma.spotOffer
+        .updateMany({ where: { id: offerId, status: "HELD" }, data: { status: "CLAIMED" } })
+        .catch((e) => console.error(`[waitlist] offer claim failed for ${offerId}:`, e));
+      await prisma.waitlistEntry
+        .updateMany({
+          where: { classId: cls.id, email: customerEmail.toLowerCase(), converted: false },
+          data: { converted: true },
+        })
+        .catch((e) => console.error(`[waitlist] entry convert failed for PI ${pi.id}:`, e));
+    }
+    return await prisma.booking.findUniqueOrThrow({ where: { id: rows[0].id } });
   } catch {
     // Unique race: webhook and return-page both creating at once. Re-fetch and advance.
     const again = await prisma.booking.findUnique({ where: { paymentIntentId: pi.id } });
@@ -150,6 +211,9 @@ export async function syncBookingWithStripe(booking: Booking): Promise<SyncResul
   // PAID and CANCELED are terminal — never auto-change them on read. A refunded/cancelled
   // booking must not resurrect to PAID just because the PaymentIntent still reads "succeeded".
   if (booking.status === "PAID" || booking.status === "CANCELED") {
+    // Retry driver for a transiently-failed confirmation email: each status-page view
+    // re-attempts the claimed send (a no-op single UPDATE once it has succeeded).
+    if (booking.status === "PAID") await sendConfirmationOnce(booking);
     return {
       booking,
       clientSecret: pi.client_secret ?? booking.clientSecret,
@@ -171,6 +235,7 @@ export async function syncBookingWithStripe(booking: Booking): Promise<SyncResul
         paidAt: next === "PAID" ? (booking.paidAt ?? new Date()) : booking.paidAt,
       },
     });
+    if (updated.status === "PAID") await sendConfirmationOnce(updated);
   }
 
   return {
@@ -221,11 +286,16 @@ export async function cancelAndRefundBooking(
       { payment_intent: booking.paymentIntentId },
       { idempotencyKey: `refund_${bookingId}` },
     );
+    // The spot just freed — offer it to the waitlist before the public can take it.
+    await maybeOfferFreedSpot(booking.classId);
     return { ok: true };
   } catch (e) {
     // Already refunded out-of-band (e.g. from the Stripe dashboard): the customer IS refunded,
     // so keep it CANCELED (spot freed) and report success rather than bricking the booking.
-    if (isAlreadyRefunded(e)) return { ok: true };
+    if (isAlreadyRefunded(e)) {
+      await maybeOfferFreedSpot(booking.classId);
+      return { ok: true };
+    }
     // Genuine failure: roll the status back so the spot isn't freed without a refund.
     console.error(`[refund] failed for booking ${bookingId} / PI ${booking.paymentIntentId}:`, e);
     await prisma.booking.update({ where: { id: bookingId }, data: { status: "PAID" } });

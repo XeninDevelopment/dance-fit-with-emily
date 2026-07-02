@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { stripe, stripeConfigured } from "@/lib/stripe";
 import { parseWallClock } from "@/lib/datetime";
 import { spotifyEmbedUrl } from "@/lib/spotify";
+import { spotsTaken } from "@/lib/capacity";
 
 export const runtime = "nodejs";
 
@@ -54,14 +55,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     );
   }
 
-  // Don't allow capacity to be set below the number of people already booked.
+  // Don't allow capacity to be set below the seats already committed — booked people plus
+  // live checkout reservations (someone mid-payment must not lose a validly held seat).
   if (data.capacity != null) {
-    const taken = await prisma.booking.count({
-      where: { classId: id, status: { in: ["PAID", "PROCESSING"] } },
-    });
+    const taken = await spotsTaken(id);
     if (data.capacity < taken) {
       return NextResponse.json(
-        { error: `Capacity can’t be below the ${taken} already booked.` },
+        { error: `Capacity can’t be below the ${taken} seats currently taken.` },
         { status: 409 },
       );
     }

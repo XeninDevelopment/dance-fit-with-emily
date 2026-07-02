@@ -3,10 +3,12 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PayShell, SummaryCard, PayReassurance } from "@/components/PayUI";
 import { JoinAndPay } from "./JoinAndPay";
+import { WaitlistForm } from "@/components/WaitlistForm";
 import { SpotifyEmbed } from "@/components/SpotifyEmbed";
 import { formatMoney } from "@/lib/money";
 import { formatDateTime } from "@/lib/datetime";
 import { stripeConfigured } from "@/lib/stripe";
+import { spotsTaken } from "@/lib/capacity";
 import { SITE_NAME, CONTACT } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -86,10 +88,7 @@ export default async function ClassJoinPage({
 
   let spotsLeft: number | null = null;
   if (cls.capacity != null) {
-    const taken = await prisma.booking.count({
-      where: { classId: cls.id, status: { in: ["PAID", "PROCESSING"] } },
-    });
-    spotsLeft = Math.max(0, cls.capacity - taken);
+    spotsLeft = Math.max(0, cls.capacity - (await spotsTaken(cls.id)));
   }
 
   const isPast = cls.classDateTime.getTime() < Date.now();
@@ -127,9 +126,14 @@ export default async function ClassJoinPage({
           <div className="text-center">
             <p className="text-base font-semibold text-ink">{blocked.title}</p>
             <p className="mt-1 text-sm text-muted">{blocked.body}</p>
-            <Link href="/classes" className="btn-primary mt-4">
-              See upcoming classes
-            </Link>
+            {/* Full (but not past/closed): capture the demand instead of losing it. */}
+            {!isPast && !cls.closed && spotsLeft === 0 ? (
+              <WaitlistForm token={cls.token} />
+            ) : (
+              <Link href="/classes" className="btn-primary mt-4">
+                See upcoming classes
+              </Link>
+            )}
             <ContactLine />
           </div>
         ) : stripeConfigured ? (

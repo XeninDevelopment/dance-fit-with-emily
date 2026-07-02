@@ -25,11 +25,22 @@ export async function getUpcomingClasses(limit?: number): Promise<PublicClass[]>
         where: { status: { in: ["PAID", "PROCESSING"] } },
         select: { id: true },
       },
+      // Live checkout reservations + waitlist-held spots count toward capacity too
+      // (see lib/capacity.ts).
+      spotHolds: {
+        where: { expiresAt: { gt: new Date() } },
+        select: { id: true },
+      },
+      spotOffers: {
+        where: { status: "HELD", tier2ExpiresAt: { gt: new Date() } },
+        select: { id: true },
+      },
     },
   });
 
   return classes.map((c) => {
-    const spotsLeft = c.capacity != null ? Math.max(0, c.capacity - c.bookings.length) : null;
+    const taken = c.bookings.length + c.spotHolds.length + c.spotOffers.length;
+    const spotsLeft = c.capacity != null ? Math.max(0, c.capacity - taken) : null;
     return {
       token: c.token,
       danceType: c.danceType,

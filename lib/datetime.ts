@@ -23,3 +23,13 @@ export function formatDateTime(d: Date): string {
     timeZone: "UTC",
   }).format(d);
 }
+
+// For REAL instants (e.g. "your offer expires at 14:30") — unlike class times, these are
+// actual moments in time, so format them in UK local time, not the UTC wall-clock.
+export function formatUkTime(d: Date): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/London",
+  }).format(d);
+}
